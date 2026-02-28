@@ -43,14 +43,14 @@ module tt_um_alif (
                 
                 // 1. Integration & Vm Leak
                 // Current Vm = Vm + Input - (Constant Leak + Adaptation Fatigue)
-                if (v_mem + ui_in > (uio_in[3:0] + (adaptation >> 2)))
-                    v_mem <= v_mem + ui_in - (uio_in[3:0] + (adaptation >> 2));
+                if (v_mem + ui_in > ({4'b0, uio_in[3:0]} + (adaptation >> 2)))
+                    v_mem <= v_mem + ui_in - ({4'b0, uio_in[3:0]} + (adaptation >> 2));
                 else
                     v_mem <= 0;
 
                 // 2. Adaptation Decay (Gradually recover from fatigue)
-                if (adaptation > uio_in[7:4])
-                    adaptation <= adaptation - uio_in[7:4];
+                if (adaptation > {4'b0, uio_in[7:4]})
+                    adaptation <= adaptation - {4'b0, uio_in[7:4]};
                 else
                     adaptation <= 0;
             end
