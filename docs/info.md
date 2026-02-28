@@ -14,6 +14,8 @@ The design implements an Adaptive Leaky Integrate-and-Fire (ALIF) neuron, a biom
 ### Architecture and Signal Integration
 The system is built around a dual-register state machine consisting of an 8-bit Membrane Potential (V_mem) register and an 8-bit Adaptation (A) register. As illustrated in Figure 1, the neuron operates by integrating the input current (I_in), received via the ui_in pins, while simultaneously subtracting two "leak" components: a constant membrane leak (L_v) and a dynamic adaptation current (A). By using dedicated 8-bit registers for these states, the design ensures that temporal information is preserved across clock cycles, allowing for complex firing behaviors.
 
+#### Figure 1: ALIF Functional Architecture
+
 ![Figure 1: ALIF Functional Architecture](block_diagram.png)
 
 This diagram illustrates the hardware implementation of the ALIF neuron. The design processes input current (I_in) modulated by a constant membrane leak (L_v) and a dynamic adaptation signal (A) to produce the membrane potential (V_mem).
@@ -31,9 +33,11 @@ The ALIF neuron is verified using a Cocotb-based Python testbench that performs 
 ### Functional Verification and Waveform Analysis
 To verify the adaptation mechanism, a constant high-input current (I_in = 80) is applied. As demonstrated in the timing diagram (Figure 2), we can observe the precise sub-threshold dynamics of the 8-bit membrane potential (V_mem) and the resulting spike pulses on uo_out[0].
 
+#### Figure 2: Waveform/Timing Diagram
+
 ![Figure 2: Waveform/Timing Diagram](timing_diagram.png)
 
-This waveform shows the Vmem register (uo_out[7:1]) and the spike output (uo_out[0]). The markers demonstrate the transition from high-frequency firing to a slower, adapted state.
+This waveform shows the Vmem register and the spike output. The markers demonstrate the transition from high-frequency firing to a slower, adapted state.
 
 ### Characterization of Spike-Frequency Adaptation
 By analyzing the waveform at the steady-state window, we can pinpoint the exact cycles where the negative feedback loop takes effect:
@@ -44,10 +48,15 @@ By analyzing the waveform at the steady-state window, we can pinpoint the exact 
 The testbench further validates the "leaky" nature of the adaptation register by setting the input current to zero after the primary firing window. As verified in the simulation logs, the adaptation state (A) successfully decays back toward zero. This confirms that the neuron recovers its baseline sensitivity, ensuring the hardware is ready for subsequent stimuli without permanent "fatigue" saturation.
 
 ### Reproducing Results
-To run the simulation and verify these metrics yourself, follow these steps in a Linux/Docker environment:
- - Navigate to the test directory: cd test
- - Run the simulation: Execute make. This will compile the Verilog and run the Cocotb testbench.
+ - To run the simulation and verify the metrics, execute the following commands in a Linux or Docker environment:
+```bash
+cd test
+make
+```
+ - This will compile the Verilog and run the Cocotb testbench.
  - Check Terminal Output: The testbench will print the detected ISIs directly to the console. As shown in Figure 3, you should see the ISI values incrementing from 4 toward 33.
+
+#### Figure 3: Example of Testbench Results
 
 ![Figure 3: Testbench Results](testbench_results.png)
 
