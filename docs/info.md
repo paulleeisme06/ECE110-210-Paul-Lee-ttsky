@@ -20,6 +20,32 @@ The system is built around a dual-register state machine consisting of an 8-bit 
 
 This diagram illustrates the hardware implementation of the ALIF neuron. The design processes input current (I_in) modulated by a constant membrane leak (L_v) and a dynamic adaptation signal (A) to produce the membrane potential (V_mem).
 
+##### Main Processing Core (V_mem)
+This section of the diagram simulates the neuron's cell body, where signals are integrated to build up an electrical potential.
+ - V_mem (Membrane Potential Register): This 8-bit memory register stores the current electrical "charge" of the neuron. The potential changes dynamically as signals are processed and reset. An "8-bit" register means it can hold any integer value from 0 to 255.
+ - I_in (Input Current): This represents the excitatory input signals the neuron is receiving. Higher I_in valuesadd more charge, causing the neuron to fire faster.
+ - Summing Node (Σ): The circle with a Σ symbol acts as an adder and subtractor. It calculates the next state of the membrane potential by combining different signals.
+ - Signal Arrows (Connecting Lines): Arrows indicate the direction of signal flow. The small '+' or '-' symbols next to the arrows at the summing node are critical: they dictate whether that signal is added or subtracted from the total potential. For instance, I_in has a '+' sign because it's an input adding positive charge to the neuron.
+
+##### Leakage Mechanisms
+In real neurons, the electrical charge naturally decays over time if no input is received. The ALIF model simulates this with negative feedback loops:
+ - L_v(membrane Leak): This input controls a constant rate of signal decay for the membrane potential. The arrow points to the summing node with a '-' sign, indicating that a fixed amount is subtracted in each time step.
+ - Adaptation (The Red Feedback Loop): This is a key feature that separates ALIF from a simpler LIF model. It simulates the biological phenomenon where a neuron becomes "fatigued" and fires less frequently in response to a continuous stimulus.
+     - The 8-bit Adaptation register is connected via a red, thick line to the primary summing node with a '-' sign. This creates negative feedback: as the neuron's adaptation state builds up, it actively subtracts more charge from the main potential, making it harder and taking longer for the neuron to reach its firing threshold again.
+ - L_a (Adaptation Leak): This input functions similarly to $L_v$. It controls how quickly the adaptation "fatigue" decays back to zero when there is no firing activity.
+
+##### Spiking Logic and Reset
+A neuron generates a "spike" (a brief electrical pulse) to signal other neurons once its potential crosses a specific threshold.
+ - Comparator: This block acts as a logical switch. It constantly compares the value in the V_mem register to a predefined threshold. In this design, the threshold is set to >= 200.
+ - Spike (Output): When V_mem hits or exceeds 200, the Comparator outputs a single "Spike" (a digital logic '1') and sends it along two main paths:
+    - One path leads to the main Output of the chip.
+    - The other path is a feedback signal labeled "Spike" or "Spike Out" that triggers critical reset and adaptation functions.
+ - MUX (Multiplexer): This block is a digital selector.
+    - Under normal conditions, it allows the new, integrated value from the summing node to pass into the V_mem register.
+    - However, when it receives a "Spike" or "Reset" signal, it "switches" its input to select a different, predetermined value.
+ - Reset: After generating a spike, the neuron must "reset" its potential to a baseline value. When a "Spike" is detected, the V_mem MUX selects the "Reset" input (typically a fixed value like 0) to be written into the V_mem register for the next cycle.
+ - Step +20: The "Spike" signal also triggers an update in the Adaptation path. When a spike occurs, it commands the Adaptation MUX to select the value from the "Step +20" input. This fixed value is then written into the Adaptation register, increasing the neuron's "fatigue" after each firing event.
+
 ### Temporal Dynamics and Firing Logic
 The membrane potential (V_mem) accumulates value until it reaches a hard-coded threshold of 200. Referring to the feedback loop shown in Figure 1, every time a spike is generated on uo_out[0], the Adaptation register (A) increments. This value is then fed back into the primary summation node to be subtracted from the next integration cycle. This specific design choice—using subtractive feedback—is what allows the neuron to exhibit "fatigue." Even with a constant input current, the increasing adaptation level slows the rate of integration, effectively lengthening the time required to reach the next threshold crossing.
 
@@ -37,7 +63,7 @@ To verify the adaptation mechanism, a constant high-input current (I_in = 80) is
 
 ![Figure 2: Waveform/Timing Diagram](timing_diagram.png)
 
-This waveform shows the Vmem register and the spike output. The markers demonstrate the transition from high-frequency firing to a slower, adapted state.
+This waveform shows the V_mem register and the spike output. The markers demonstrate the transition from high-frequency firing to a slower, adapted state.
 
 ### Characterization of Spike-Frequency Adaptation
 By analyzing the waveform at the steady-state window, we can pinpoint the exact cycles where the negative feedback loop takes effect:
